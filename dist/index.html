@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#f97316" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="菜谱记录" />
+    <meta name="description" content="记录美食创意，管理您的菜谱" />
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./assets/manifest-sYjVGTp2.json" />
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192x192-CO_rSM2S.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="./assets/icon-192x192-CO_rSM2S.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="./assets/icon-512x512-CjLGrb1d.png" />
+    
+    <title>菜品研发记录</title>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('./service-worker.js')
+            .then(function(registration) {
+              console.log('[PWA] Service Worker 注册成功:', registration.scope);
+            })
+            .catch(function(error) {
+              console.log('[PWA] Service Worker 注册失败:', error);
+            });
+        });
+      }
+    </script>
+    <script type="module" crossorigin src="./assets/index-Bvqg3QLT.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-Boyl2-c_.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
