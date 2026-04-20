@@ -41,6 +41,29 @@ export async function exportRecipeToPDF(recipe: Recipe): Promise<void> {
         </div>
       ` : ''}
 
+      <!-- 成本汇总 -->
+      ${(recipe.ingredients.some(i => i.cost) || (recipe.seasonings || []).some(s => s.cost)) ? `
+        <div style="margin-bottom: 25px; padding: 15px; background: #fff7ed; border-radius: 8px; border: 2px solid #f97316;">
+          <h2 style="font-size: 18px; color: #f97316; margin-bottom: 10px; font-weight: bold;">成本核算</h2>
+          ${recipe.ingredients.reduce((sum, i) => sum + (parseFloat(i.cost || '0') || 0), 0) > 0 ? `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
+              <span>食材成本：</span>
+              <span style="font-weight: bold;">¥${recipe.ingredients.reduce((sum, i) => sum + (parseFloat(i.cost || '0') || 0), 0).toFixed(2)}</span>
+            </div>
+          ` : ''}
+          ${(recipe.seasonings || []).reduce((sum, s) => sum + (parseFloat(s.cost || '0') || 0), 0) > 0 ? `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
+              <span>调料成本：</span>
+              <span style="font-weight: bold;">¥${(recipe.seasonings || []).reduce((sum, s) => sum + (parseFloat(s.cost || '0') || 0), 0).toFixed(2)}</span>
+            </div>
+          ` : ''}
+          <div style="display: flex; justify-content: space-between; border-top: 1px solid #f97316; padding-top: 8px; font-size: 16px; font-weight: bold; color: #f97316;">
+            <span>总成本：</span>
+            <span>¥${[...recipe.ingredients, ...(recipe.seasonings || [])].reduce((sum, item) => sum + (parseFloat(item.cost || '0') || 0), 0).toFixed(2)}</span>
+          </div>
+        </div>
+      ` : ''}
+
       <!-- 食材 -->
       ${recipe.ingredients.length > 0 ? `
         <div style="margin-bottom: 25px;">
@@ -55,6 +78,7 @@ export async function exportRecipeToPDF(recipe: Recipe): Promise<void> {
                 <span style="color: #666; margin-left: 8px;">
                   ${ing.amount ? escapeHtml(ing.amount) + ' ' : ''}${escapeHtml(ing.unit)}
                 </span>
+                ${ing.cost ? `<span style="color: #f97316; font-weight: bold; margin-left: 8px;">¥${escapeHtml(ing.cost)}</span>` : ''}
               </div>
             `).join('')}
           </div>
@@ -75,6 +99,7 @@ export async function exportRecipeToPDF(recipe: Recipe): Promise<void> {
                 <span style="color: #666; margin-left: 8px;">
                   ${sea.amount ? escapeHtml(sea.amount) + ' ' : ''}${escapeHtml(sea.unit)}
                 </span>
+                ${sea.cost ? `<span style="color: #f97316; font-weight: bold; margin-left: 8px;">¥${escapeHtml(sea.cost)}</span>` : ''}
               </div>
             `).join('')}
           </div>
@@ -111,6 +136,16 @@ export async function exportRecipeToPDF(recipe: Recipe): Promise<void> {
         </div>
       ` : ''}
 
+      <!-- 研发思路 -->
+      ${recipe.developmentNotes ? `
+        <div style="margin-bottom: 25px; padding: 20px; background: #fefce8; border-radius: 8px; border: 1px solid #fde047;">
+          <h2 style="font-size: 18px; color: #854d0e; margin-bottom: 12px; font-weight: bold;">💡 研发思路</h2>
+          <p style="margin: 0; font-size: 14px; line-height: 1.8; color: #713f12; white-space: pre-line;">
+            ${escapeHtml(recipe.developmentNotes)}
+          </p>
+        </div>
+      ` : ''}
+
       <!-- 页脚 -->
       <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #999; font-size: 12px;">
         由 菜品研发记录 生成 · ${new Date().toLocaleDateString('zh-CN')}
@@ -125,13 +160,15 @@ export async function exportRecipeToPDF(recipe: Recipe): Promise<void> {
     // 动态导入 html2canvas
     const html2canvas = (await import('html2canvas')).default;
     
-    // 渲染为canvas
+    // 渲染为canvas - 高清模式
     const canvas = await html2canvas(container, {
-      scale: 2,
+      scale: 3, // 提高分辨率 (原来是2)
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
       logging: false,
+      imageTimeout: 0, // 不限制图片加载时间
+      removeContainer: true,
     });
 
     // 创建PDF
@@ -195,21 +232,44 @@ export async function exportRecipeToXLSX(recipe: Recipe): Promise<void> {
   const basicSheet = XLSX.utils.aoa_to_sheet(basicInfo);
   XLSX.utils.book_append_sheet(workbook, basicSheet, '基本信息');
 
+  // 成本汇总工作表
+  const totalIngredientCost = recipe.ingredients.reduce((sum, ing) => sum + (parseFloat(ing.cost || '0') || 0), 0);
+  const totalSeasoningCost = (recipe.seasonings || []).reduce((sum, sea) => sum + (parseFloat(sea.cost || '0') || 0), 0);
+  const totalCost = totalIngredientCost + totalSeasoningCost;
+
+  if (totalCost > 0) {
+    const costData = [
+      ['项目', '金额（元）'],
+      ['食材成本', totalIngredientCost.toFixed(2)],
+      ['调料成本', totalSeasoningCost.toFixed(2)],
+      ['总成本', totalCost.toFixed(2)],
+    ];
+    const costSheet = XLSX.utils.aoa_to_sheet(costData);
+    XLSX.utils.book_append_sheet(workbook, costSheet, '成本核算');
+  }
+
   // 食材工作表
   const ingredientData = [
-    ['食材名称', '份量', '单位'],
-    ...recipe.ingredients.map(ing => [ing.name, ing.amount, ing.unit]),
+    ['食材名称', '份量', '单位', '成本（元）'],
+    ...recipe.ingredients.map(ing => [ing.name, ing.amount, ing.unit, ing.cost || '0']),
   ];
   const ingredientSheet = XLSX.utils.aoa_to_sheet(ingredientData);
   XLSX.utils.book_append_sheet(workbook, ingredientSheet, '食材');
 
   // 调料工作表
   const seasoningData = [
-    ['调料名称', '份量', '单位'],
-    ...(recipe.seasonings || []).map(sea => [sea.name, sea.amount, sea.unit]),
+    ['调料名称', '份量', '单位', '成本（元）'],
+    ...(recipe.seasonings || []).map(sea => [sea.name, sea.amount, sea.unit, sea.cost || '0']),
   ];
   const seasoningSheet = XLSX.utils.aoa_to_sheet(seasoningData);
   XLSX.utils.book_append_sheet(workbook, seasoningSheet, '调料');
+
+  // 研发思路工作表
+  if (recipe.developmentNotes) {
+    const notesData = [['研发思路'], [recipe.developmentNotes]];
+    const notesSheet = XLSX.utils.aoa_to_sheet(notesData);
+    XLSX.utils.book_append_sheet(workbook, notesSheet, '研发思路');
+  }
 
   // 步骤工作表
   const stepData = [

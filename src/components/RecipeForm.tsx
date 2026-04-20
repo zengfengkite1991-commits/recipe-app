@@ -39,13 +39,16 @@ export function RecipeForm({ recipe, categories, units, onSave, onCancel }: Reci
   );
 
   // 新食材输入
-  const [newIngredient, setNewIngredient] = useState({ name: '', amount: '', unit: units[0]?.name ?? '克' });
+  const [newIngredient, setNewIngredient] = useState({ name: '', amount: '', unit: units[0]?.name ?? '克', cost: '' });
 
   // 新调料输入
-  const [newSeasoning, setNewSeasoning] = useState({ name: '', amount: '', unit: units[0]?.name ?? '克' });
+  const [newSeasoning, setNewSeasoning] = useState({ name: '', amount: '', unit: units[0]?.name ?? '克', cost: '' });
 
   // 新步骤输入
   const [newStep, setNewStep] = useState({ description: '', image: '' });
+
+  // 研发思路
+  const [developmentNotes, setDevelopmentNotes] = useState(recipe?.developmentNotes || '');
 
   // 文件输入引用
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -86,6 +89,12 @@ export function RecipeForm({ recipe, categories, units, onSave, onCancel }: Reci
     }
   };
 
+  // 计算总成本
+  const totalCost = [...ingredients, ...seasonings].reduce((sum, item) => {
+    const cost = parseFloat(item.cost || '0');
+    return sum + (isNaN(cost) ? 0 : cost);
+  }, 0);
+
   // 添加食材
   const addIngredient = () => {
     if (newIngredient.name.trim()) {
@@ -96,9 +105,10 @@ export function RecipeForm({ recipe, categories, units, onSave, onCancel }: Reci
           name: newIngredient.name.trim(),
           amount: newIngredient.amount.trim(),
           unit: newIngredient.unit,
+          cost: newIngredient.cost.trim(),
         },
       ]);
-      setNewIngredient({ name: '', amount: '', unit: units[0]?.name ?? '克' });
+      setNewIngredient({ name: '', amount: '', unit: units[0]?.name ?? '克', cost: '' });
     }
   };
 
@@ -117,9 +127,10 @@ export function RecipeForm({ recipe, categories, units, onSave, onCancel }: Reci
           name: newSeasoning.name.trim(),
           amount: newSeasoning.amount.trim(),
           unit: newSeasoning.unit,
+          cost: newSeasoning.cost.trim(),
         },
       ]);
-      setNewSeasoning({ name: '', amount: '', unit: units[0]?.name ?? '克' });
+      setNewSeasoning({ name: '', amount: '', unit: units[0]?.name ?? '克', cost: '' });
     }
   };
 
@@ -183,6 +194,7 @@ export function RecipeForm({ recipe, categories, units, onSave, onCancel }: Reci
       ingredients,
       seasonings,
       steps,
+      developmentNotes: developmentNotes.trim() || undefined,
       createdAt: recipe?.createdAt || now,
       updatedAt: now,
     };
@@ -281,6 +293,11 @@ export function RecipeForm({ recipe, categories, units, onSave, onCancel }: Reci
               <span className="text-gray-600">
                 {ing.amount && `${ing.amount} `}{ing.unit}
               </span>
+              {ing.cost && (
+                <span className="text-orange-600 font-medium">
+                  ¥{ing.cost}
+                </span>
+              )}
               <button
                 onClick={() => removeIngredient(ing.id)}
                 className="p-1 text-red-500 hover:bg-red-50 rounded"
@@ -304,10 +321,10 @@ export function RecipeForm({ recipe, categories, units, onSave, onCancel }: Reci
             value={newIngredient.amount}
             onChange={(e) => setNewIngredient({ ...newIngredient, amount: e.target.value })}
             placeholder="份量"
-            className="w-20"
+            className="w-16"
             onKeyDown={(e) => e.key === 'Enter' && addIngredient()}
           />
-          <div className="relative w-28">
+          <div className="relative w-24">
             <Input
               value={newIngredient.unit}
               onChange={(e) => setNewIngredient({ ...newIngredient, unit: e.target.value })}
@@ -333,7 +350,17 @@ export function RecipeForm({ recipe, categories, units, onSave, onCancel }: Reci
               ))}
             </select>
           </div>
-          <Button onClick={addIngredient} className="px-4">
+          <Input
+            value={newIngredient.cost}
+            onChange={(e) => setNewIngredient({ ...newIngredient, cost: e.target.value })}
+            placeholder="成本¥"
+            className="w-20"
+            type="number"
+            min="0"
+            step="0.01"
+            onKeyDown={(e) => e.key === 'Enter' && addIngredient()}
+          />
+          <Button onClick={addIngredient} className="px-3">
             <Plus className="w-4 h-4" />
           </Button>
         </div>
@@ -355,6 +382,11 @@ export function RecipeForm({ recipe, categories, units, onSave, onCancel }: Reci
               <span className="text-gray-600">
                 {sea.amount && `${sea.amount} `}{sea.unit}
               </span>
+              {sea.cost && (
+                <span className="text-orange-600 font-medium">
+                  ¥{sea.cost}
+                </span>
+              )}
               <button
                 onClick={() => removeSeasoning(sea.id)}
                 className="p-1 text-red-500 hover:bg-red-50 rounded"
@@ -378,10 +410,10 @@ export function RecipeForm({ recipe, categories, units, onSave, onCancel }: Reci
             value={newSeasoning.amount}
             onChange={(e) => setNewSeasoning({ ...newSeasoning, amount: e.target.value })}
             placeholder="份量"
-            className="w-20"
+            className="w-16"
             onKeyDown={(e) => e.key === 'Enter' && addSeasoning()}
           />
-          <div className="relative w-28">
+          <div className="relative w-24">
             <Input
               value={newSeasoning.unit}
               onChange={(e) => setNewSeasoning({ ...newSeasoning, unit: e.target.value })}
@@ -407,7 +439,17 @@ export function RecipeForm({ recipe, categories, units, onSave, onCancel }: Reci
               ))}
             </select>
           </div>
-          <Button onClick={addSeasoning} className="px-4">
+          <Input
+            value={newSeasoning.cost}
+            onChange={(e) => setNewSeasoning({ ...newSeasoning, cost: e.target.value })}
+            placeholder="成本¥"
+            className="w-20"
+            type="number"
+            min="0"
+            step="0.01"
+            onKeyDown={(e) => e.key === 'Enter' && addSeasoning()}
+          />
+          <Button onClick={addSeasoning} className="px-3">
             <Plus className="w-4 h-4" />
           </Button>
         </div>
@@ -536,6 +578,52 @@ export function RecipeForm({ recipe, categories, units, onSave, onCancel }: Reci
           onChange={handleStepImageUpload}
           className="hidden"
         />
+      </section>
+
+      {/* 成本汇总 */}
+      {(ingredients.length > 0 || seasonings.length > 0) && (
+        <section className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">成本核算</h2>
+          <div className="space-y-3">
+            {ingredients.length > 0 && (
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <span className="text-gray-600">食材成本</span>
+                <span className="font-semibold text-gray-900">
+                  ¥{ingredients.reduce((sum, ing) => sum + (parseFloat(ing.cost || '0') || 0), 0).toFixed(2)}
+                </span>
+              </div>
+            )}
+            {seasonings.length > 0 && (
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <span className="text-gray-600">调料成本</span>
+                <span className="font-semibold text-gray-900">
+                  ¥{seasonings.reduce((sum, sea) => sum + (parseFloat(sea.cost || '0') || 0), 0).toFixed(2)}
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between items-center p-4 bg-orange-50 rounded-lg border border-orange-200">
+              <span className="font-semibold text-gray-900">总成本</span>
+              <span className="text-xl font-bold text-orange-600">
+                ¥{totalCost.toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 研发思路 */}
+      <section className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">研发思路</h2>
+        <Textarea
+          value={developmentNotes}
+          onChange={(e) => setDevelopmentNotes(e.target.value)}
+          placeholder="记录这道菜的研发过程、灵感来源、改进方向..."
+          rows={6}
+          className="w-full"
+        />
+        <p className="mt-2 text-xs text-gray-400">
+          提示：可记录创意灵感、试做心得、改进计划等
+        </p>
       </section>
 
       {/* 底部按钮 */}

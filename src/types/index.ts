@@ -6,6 +6,7 @@ export interface Ingredient {
   name: string;
   amount: string;
   unit: string;
+  cost: string; // 成本金额
 }
 
 // 调料
@@ -14,6 +15,7 @@ export interface Seasoning {
   name: string;
   amount: string;
   unit: string;
+  cost: string; // 成本金额
 }
 
 // 制作步骤
@@ -38,6 +40,7 @@ export interface Recipe {
   ingredients: Ingredient[];
   seasonings: Seasoning[];
   steps: Step[];
+  developmentNotes?: string; // 研发思路
   createdAt: number;
   updatedAt: number;
 }
